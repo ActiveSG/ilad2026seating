@@ -173,14 +173,14 @@
     font-weight: 600;
   }
 
-  .result-label {
+.result-label {
     font-size: 12px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: rgba(238,236,230,0.45);
-    margin-top: 6px;
+    margin-bottom: 6px;
   }
-
+  
   .hint, .empty, .multi {
     color: rgba(238,236,230,0.4);
     font-size: 14px;
@@ -280,7 +280,7 @@
     const q = normalize(query);
 
     if (!q) {
-      resultEl.innerHTML = '<div class="hint">Enter your full name and press Find</div>';
+      resultEl.innerHTML = '';
       return;
     }
 
@@ -313,7 +313,9 @@
   function showTable(g) {
     resultEl.innerHTML = `
       <div class="result-inner">
-        <div class="result-name">${escapeHtml(g.name)}</div>
+     <div class="result-name">${escapeHtml(g.name)}</div>
+        <div class="result-label">Table</div>
+        <div class="result-table">${escapeHtml(g.table)}</div>   <div class="result-name">${escapeHtml(g.name)}</div>
         <div class="result-table">${escapeHtml(g.table)}</div>
         <div class="result-label">Table</div>
       </div>`;

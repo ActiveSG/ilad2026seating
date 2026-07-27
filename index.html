@@ -11,12 +11,8 @@
 <style>
   :root {
     --ink: #14161a;
-    --ink-soft: #2a2d33;
     --paper: #eeece6;
-    --paper-dim: #e2ded4;
-    --brass: #a98a4e;
     --brass-bright: #c9a961;
-    --line: rgba(20,22,26,0.12);
   }
 
   * { box-sizing: border-box; }
@@ -55,33 +51,21 @@
     margin-bottom: 18px;
   }
 
-  .eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-    color: var(--brass-bright);
-    margin-bottom: 14px;
-    font-weight: 600;
-  }
-
-  h1 {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 600;
-    font-size: 40px;
-    line-height: 1.1;
-    margin: 0 0 8px;
-    letter-spacing: 0.01em;
-  }
-
   .sub {
     font-size: 14px;
     color: rgba(238,236,230,0.55);
-    margin-bottom: 36px;
+    margin-bottom: 24px;
+  }
+
+  .hint {
+    font-size: 14px;
+    color: rgba(238,236,230,0.4);
+    margin-bottom: 16px;
   }
 
   .search-row {
     position: relative;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
   input[type="text"] {
@@ -114,7 +98,6 @@
   button#findBtn {
     width: 100%;
     padding: 14px 20px;
-    margin-bottom: 28px;
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -142,10 +125,11 @@
   }
 
   #result {
-    min-height: 128px;
+    min-height: 100px;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-top: 20px;
   }
 
   .result-inner {
@@ -160,9 +144,17 @@
   .result-name {
     font-size: 13px;
     color: rgba(238,236,230,0.5);
-    margin-bottom: 6px;
+    margin-bottom: 10px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
+  }
+
+  .result-label {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(238,236,230,0.45);
+    margin-bottom: 4px;
   }
 
   .result-table {
@@ -173,48 +165,12 @@
     font-weight: 600;
   }
 
-.result-label {
-    font-size: 12px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(238,236,230,0.45);
-    margin-bottom: 6px;
-  }
-  
-  .hint, .empty, .multi {
+  .empty {
     color: rgba(238,236,230,0.4);
     font-size: 14px;
   }
 
-  .multi-list {
-    text-align: left;
-    display: inline-block;
-  }
-
-  .multi-item {
-    padding: 10px 16px;
-    border: 1px solid rgba(238,236,230,0.15);
-    border-radius: 2px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
-    font-size: 14px;
-  }
-
-  .multi-item:hover, .multi-item:focus-visible {
-    border-color: var(--brass-bright);
-    background: rgba(238,236,230,0.06);
-  }
-
-  footer {
-    margin-top: 40px;
-    font-size: 11px;
-    color: rgba(238,236,230,0.28);
-    letter-spacing: 0.04em;
-  }
-
   @media (max-width: 480px) {
-    h1 { font-size: 32px; }
     .result-table { font-size: 44px; }
   }
 </style>
@@ -223,10 +179,9 @@
 
 <div class="card">
   <img src="title.png" alt="International Lifeguard Appreciation Day — Dinner and Awards 2026" class="title-img">
-  <div class="sub"> · HomeTeamNS Khatib · 30 July 2026</div>
+  <div class="sub">HomeTeamNS Khatib · 30 July 2026</div>
 
-  <form id="searchForm" autocomplete="off">
-    <div class="search-row"><div class="hint" style="margin-bottom: 14px;">Enter your full name and press Find my Table</div>
+  <div class="hint">Enter your full name and press Find my Table</div>
 
   <form id="searchForm" autocomplete="off">
     <div class="search-row">
@@ -243,16 +198,9 @@
 
   <div id="result"></div>
 </div>
-    <div id="result">
-    <div class="hint">Enter your full name and press Find</div>
-  </div>
-
-  <footer>Sample data · replace with actual guest list before deploying</footer>
-</div>
 
 <script>
-  // ---- Sample data. Replace with actual guest list. ----
-  // Each entry: { name: "Full Name", table: "Table number/label" }
+  // ---- Guest data. Replace with the actual guest list. ----
   const GUESTS = [
     { name: "Tan Wei Ming", table: "12" },
     { name: "Nur Aisyah Binte Rahman", table: "4" },
@@ -265,15 +213,29 @@
     { name: "Siti Nurhaliza", table: "5" },
     { name: "Wong Kah Wai", table: "10" }
   ];
-  // --------------------------------------------------------
+  // -----------------------------------------------------------
 
   const form = document.getElementById('searchForm');
   const input = document.getElementById('searchInput');
   const resultEl = document.getElementById('result');
 
-  // Collapse extra whitespace and lowercase, so "  Tan   Wei Ming " matches "Tan Wei Ming"
   function normalize(str) {
     return str.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showTable(g) {
+    resultEl.innerHTML =
+      '<div class="result-inner">' +
+        '<div class="result-name">' + escapeHtml(g.name) + '</div>' +
+        '<div class="result-label">Table</div>' +
+        '<div class="result-table">' + escapeHtml(g.table) + '</div>' +
+      '</div>';
   }
 
   function lookup(query) {
@@ -284,18 +246,13 @@
       return;
     }
 
-    // 1. Try exact match first.
-    let match = GUESTS.find(g => normalize(g.name) === q);
-
-    if (match) {
-      showTable(match);
+    const exact = GUESTS.find(function (g) { return normalize(g.name) === q; });
+    if (exact) {
+      showTable(exact);
       return;
     }
 
-    // 2. Fall back to partial match (handles missing middle name, name
-    // order, minor typos) — but only reveal a result if it's unambiguous.
-    // Never list other guests' names, even when there are multiple hits.
-    const partial = GUESTS.filter(g => normalize(g.name).includes(q));
+    const partial = GUESTS.filter(function (g) { return normalize(g.name).indexOf(q) !== -1; });
 
     if (partial.length === 1) {
       showTable(partial[0]);
@@ -303,31 +260,14 @@
     }
 
     if (partial.length > 1) {
-      resultEl.innerHTML = '<div class="empty">A few names match that. Please type a bit more of your full name (e.g. add your last name) and press Find again.</div>';
+      resultEl.innerHTML = '<div class="empty">A few names match that. Please type a bit more of your full name and press Find my Table again.</div>';
       return;
     }
 
     resultEl.innerHTML = '<div class="empty">No match found. Please check the spelling matches your invite, or ask a staff member at the registration desk.</div>';
   }
 
-  function showTable(g) {
-    resultEl.innerHTML = `
-      <div class="result-inner">
-     <div class="result-name">${escapeHtml(g.name)}</div>
-        <div class="result-label">Table</div>
-        <div class="result-table">${escapeHtml(g.table)}</div>   <div class="result-name">${escapeHtml(g.name)}</div>
-        <div class="result-table">${escapeHtml(g.table)}</div>
-        <div class="result-label">Table</div>
-      </div>`;
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', function (e) {
     e.preventDefault();
     lookup(input.value);
   });

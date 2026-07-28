@@ -60,7 +60,7 @@
   .hint {
     font-size: 14px;
     color: rgba(238,236,230,0.4);
-    margin-bottom: 16px;
+    margin-bottom: 6px;
   }
 
   .search-row {
@@ -144,12 +144,12 @@
   .result-name {
     font-size: 13px;
     color: rgba(238,236,230,0.5);
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
   }
 
-.result-label {
+  .result-label {
     font-size: 12px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -157,13 +157,12 @@
     margin-bottom: 0px;
   }
 
-.result-table {
+  .result-table {
     font-family: 'Cormorant Garamond', serif;
     font-size: 56px;
-    line-height: 1;
+    line-height: 1.1;
     color: var(--brass-bright);
     font-weight: 600;
-    margin-top: -10px;
   }
 
   .empty {
@@ -180,9 +179,8 @@
 
 <div class="card">
   <img src="title.png" alt="International Lifeguard Appreciation Day — Dinner and Awards 2026" class="title-img">
-  <div class="sub">HomeTeamNS Khatib · 30 July 2026</div>
 
-  <div class="hint">Enter your full name and press Find my Table</div>
+  <div class="hint">Please enter your full name e.g., Tan Wei Ming, Jason</div>
 
   <form id="searchForm" autocomplete="off">
     <div class="search-row">
@@ -194,31 +192,26 @@
         autocapitalize="words"
       >
     </div>
-    <button type="submit" id="findBtn">Find my table</button>
+    <button type="submit" id="findBtn">FIND MY TABLE</button>
   </form>
 
   <div id="result"></div>
 </div>
 
 <script>
-  // ---- Guest data. Replace with the actual guest list. ----
-  const GUESTS = [
-    { name: "Tan Wei Ming", table: "12" },
-    { name: "Nur Aisyah Binte Rahman", table: "4" },
-    { name: "Rajesh Kumar", table: "7" },
-    { name: "Lim Hui Ying", table: "12" },
-    { name: "Muhammad Faiz", table: "9" },
-    { name: "Chua Bee Choo", table: "3" },
-    { name: "Kavitha Suresh", table: "7" },
-    { name: "Ong Jun Jie", table: "1" },
-    { name: "Siti Nurhaliza", table: "5" },
-    { name: "Wong Kah Wai", table: "10" }
-  ];
-  // -----------------------------------------------------------
+  // Guest data is loaded from guests.csv (same folder as this file).
+  // guests.csv format:
+  //   name,table
+  //   Tan Wei Ming,12
+  //   Nur Aisyah Binte Rahman,4
+  let GUESTS = [];
+  let guestsLoaded = false;
+  let guestsFailedToLoad = false;
 
   const form = document.getElementById('searchForm');
   const input = document.getElementById('searchInput');
   const resultEl = document.getElementById('result');
+  const findBtn = document.getElementById('findBtn');
 
   function normalize(str) {
     return str.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -230,20 +223,87 @@
     return div.innerHTML;
   }
 
+  // Simple CSV line parser: handles basic quoted fields (e.g. "Tan, Wei Ming").
+  function parseCsvLine(line) {
+    const fields = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (inQuotes) {
+        if (char === '"') {
+          if (line[i + 1] === '"') { current += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          current += char;
+        }
+      } else {
+        if (char === '"') { inQuotes = true; }
+        else if (char === ',') { fields.push(current); current = ''; }
+        else { current += char; }
+      }
+    }
+    fields.push(current);
+    return fields.map(function (f) { return f.trim(); });
+  }
+
+  function parseCsv(text) {
+    const lines = text.split(/\r?\n/).filter(function (l) { return l.trim() !== ''; });
+    if (lines.length === 0) return [];
+
+    const header = parseCsvLine(lines[0]).map(function (h) { return h.toLowerCase(); });
+    const nameIdx = header.indexOf('name');
+    const tableIdx = header.indexOf('table');
+
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const fields = parseCsvLine(lines[i]);
+      const name = fields[nameIdx];
+      const table = fields[tableIdx];
+      if (name && table) rows.push({ name: name, table: table });
+    }
+    return rows;
+  }
+
+  function loadGuests() {
+    fetch('guests.csv')
+      .then(function (res) {
+        if (!res.ok) throw new Error('Could not load guests.csv');
+        return res.text();
+      })
+      .then(function (text) {
+        GUESTS = parseCsv(text);
+        guestsLoaded = true;
+      })
+      .catch(function () {
+        guestsFailedToLoad = true;
+      });
+  }
+
   function showTable(g) {
     resultEl.innerHTML =
       '<div class="result-inner">' +
-        '<div class="result-name">' + escapeHtml(g.name) + '</div>' +
         '<div class="result-label">Table</div>' +
         '<div class="result-table">' + escapeHtml(g.table) + '</div>' +
       '</div>';
   }
 
   function lookup(query) {
+    if (guestsFailedToLoad) {
+      resultEl.innerHTML = '<div class="empty">Something went wrong loading the guest list. Please ask a staff member at the registration desk.</div>';
+      return;
+    }
+
+    if (!guestsLoaded) {
+      resultEl.innerHTML = '<div class="empty">Still loading the guest list, please try again in a moment.</div>';
+      return;
+    }
+
     const q = normalize(query);
 
     if (!q) {
-      resultEl.innerHTML = '';
+      resultEl.innerHTML = '<div class="empty">Please type your full name first.</div>';
       return;
     }
 
@@ -265,14 +325,17 @@
       return;
     }
 
-    resultEl.innerHTML = '<div class="empty">No match found. Please check the spelling matches your invite, or ask a staff member at the registration desk.</div>';
+    resultEl.innerHTML = '<div class="empty">No match found. Please try again and key in your full name. If it still doesn\'t show up, please approach our staff at the registration counter for assistance.</div>';
   }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     lookup(input.value);
   });
+
+  loadGuests();
 </script>
 
 </body>
+
 </html>
